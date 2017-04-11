@@ -12,5 +12,23 @@
     "permissions": [
         "activeTab",
         "contextMenus"
+    ],
+    "background": {
+        "scripts": ["background.js"]
+    },
+    "content_scripts": [{
+        "matches": [
+            "https://*/*",
+            "http://*/*"
+        ],
+        "js": ["injector.js"]
+    }],
+    "externally_connectable": {
+        "matches": [
+            "http://localhost:*/*"
+        ]
+    },
+    "web_accessible_resources": [
+        "content.js"
     ]
 }
