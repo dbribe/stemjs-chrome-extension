@@ -29,6 +29,7 @@
         ]
     },
     "web_accessible_resources": [
-        "content.js"
+        "page.js",
+        "page.css"
     ]
 }

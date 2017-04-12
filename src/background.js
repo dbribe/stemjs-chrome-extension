@@ -1,11 +1,19 @@
-let mainPort;
+let pagePort, popupPort;
 chrome.runtime.onConnectExternal.addListener((port) => {
-    mainPort = port;
+    if (port.name === "page"){
+        pagePort = port;
+    }
 });
 
-chrome.contextMenus.create({title: "inspect Stem Element", id: "stemDevTool"});
+chrome.extension.onConnect.addListener((port) => {
+    if (port.name === "popup") {
+        port.onMessage.addListener((message) => {
+            pagePort.postMessage(message);
+        });
+    }
+});
+
+chrome.contextMenus.create({title: "Inspect Stem Element", id: "stemDevTool"});
 chrome.contextMenus.onClicked.addListener(() => {
-    mainPort.postMessage({type: "inspectElement"});
+    pagePort.postMessage({type: "inspectElement"});
 });
-
-alert(chrome.runtime.id);
