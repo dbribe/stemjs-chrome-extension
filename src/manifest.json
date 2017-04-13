@@ -32,7 +32,7 @@
             "http://csacademy.com/*",
             "https://csacademy.com/*",
             "http://stemjs.com/*",
-            "https://stemjs.com/*",
+            "https://stemjs.com/*"
         ]
     },
     "web_accessible_resources": [
