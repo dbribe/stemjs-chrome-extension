@@ -1,0 +1,15 @@
+body {
+    font-size: 14px;
+}
+
+label {
+    font-weight: bold;
+}
+
+#mainContainer {
+    min-width: 180px;
+}
+
+span {
+    white-space: nowrap;
+}

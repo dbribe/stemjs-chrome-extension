@@ -10,10 +10,12 @@ chrome.extension.onConnect.addListener((port) => {
         port.onMessage.addListener((message) => {
             pagePort.postMessage(message);
         });
+        pagePort.onMessage.addListener((message) => {
+            port.postMessage(message);
+        });
     }
 });
 
-chrome.contextMenus.create({title: "Inspect Stem Element", id: "stemDevTool"});
-chrome.contextMenus.onClicked.addListener(() => {
-    pagePort.postMessage({type: "inspectElement"});
-});
+chrome.contextMenus.create({title: "Enter DOM Inspector", id: "enterDOMInspector", onclick: () => {
+    pagePort.postMessage({type: "hoverInspector"});
+}});

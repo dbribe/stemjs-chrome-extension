@@ -1,3 +1,8 @@
+const parseKeyEvent = (event) => {
+    return (event.metaKey ? "T" : "F") + (event.ctrlKey ? "T" : "F") + (event.altKey ? "T" : "F") +
+        (event.shiftKey ? "T" : "F") + event.code;
+};
+
 const extensionID = "dljmijiigdaaihfmigaefbmnnakcgief";
 const mainPort = chrome.runtime.connect(extensionID, {name: "page"});
 sessionStorage.setItem("stemDevTools", "true");
@@ -10,27 +15,21 @@ document.addEventListener("contextmenu", (event) => {
 let counter = 0;
 
 mainPort.onMessage.addListener((event) => {
-    if (event.type === "inspectElement") {
-        inspectElement();
-    } else if (event.type === "magicStarted") {
+    if (event.type === "hoverInspector") {
         HoverInspector.getInstance().start();
+    } else if (event.type === "getStorageValue") {
+        mainPort.postMessage({type: "getStorageValue", id: event.id, value: localStorage.getItem(event.key)});
+    } else if (event.type === "setStorageValue") {
+        localStorage.setItem(event.key, event.value);
     }
 });
 
-const inspectElement = function() {
-    let node = contextMenuEvent.target;
-    window.original = node;
-    console.clear();
-    console.warn("el" + (++counter) + " = ", node.stemElement, node);
-    window["el" + counter] = node.stemElement;
-};
-
 class BaseClass {
     static getInstance() {
-        if (this.constructor.instance) {
-            return this.constructor.instance;
+        if (this.hasOwnProperty("singletonInstance")) {
+            return this.singletonInstance;
         } else {
-            return this.constructor.instance = new HoverInspector();
+            return this.singletonInstance = new this();
         }
     }
 }
@@ -46,6 +45,21 @@ function getCoords(node) {
     return {x: x, y: y};
 }
 
+function getDimensions(node) {
+    if (node.offsetWidth != null) {
+        return {width: node.offsetWidth, height: node.offsetHeight};
+    } else {
+        const rect = node.getBoundingClientRect();
+        return {width: parseInt(rect.width), height: parseInt(rect.height)};
+    }
+}
+
+document.addEventListener("keydown", (event) => {
+    if (parseKeyEvent(event) === localStorage.getItem("inspectShortcut")) {
+        HoverInspector.getInstance().start();
+    }
+});
+
 
 class HoverInspector extends BaseClass{
     start() {
@@ -58,7 +72,10 @@ class HoverInspector extends BaseClass{
         });
         this.keyupListener = document.addEventListener("keyup", (event) => {
             if (event.keyCode == 87) { // W
-                this.setCurrentNode(this.node.parentNode);
+                const parent = this.node.stemElement ? this.node.stemElement.parent : this.node.parentNode;
+                if (parent) {
+                    this.setCurrentNode(parent);
+                }
             }
         });
         this.highlightPanel = document.createElement("div");
@@ -70,14 +87,44 @@ class HoverInspector extends BaseClass{
                 this.positionHighlightPanel();
             }
         }, true);
+        this.clickHandler = (event) => {
+            event.stopPropagation();
+            event.preventDefault();
+            this.constructor.inspectElement(this.node);
+            this.end();
+        };
+        document.addEventListener("click", this.clickHandler, true);
+
+        this.escapeHandler =  (event) => {
+            if (event.keyCode == 27) { // Esc
+                event.stopPropagation();
+                event.preventDefault();
+                this.end();
+            }
+        };
+        document.addEventListener("keyup", this.escapeHandler, true);
     }
 
     end() {
         this.destroyTooltip();
         document.body.removeEventListener("mousemove", this.mousemoveListener);
         document.removeEventListener("keyup", this.keyupListener);
-        document.body.eraseChild(this.highlightPanel);
+        if (this.highlightPanel.parentNode === document.body) {
+            document.body.removeChild(this.highlightPanel);
+        }
+        document.removeEventListener("scroll", this.scrollEventListener);
+        document.removeEventListener("click", this.clickHandler, true);
+        document.removeEventListener("keyup", this.escapeHandler, true);
+        document.removeEventListener("keydown", this.keyInspectHandler, true);
     }
+
+    static inspectElement(node) {
+        if (localStorage.getItem("clearConsole") === "true") {
+            console.clear();
+        }
+        console.info("el" + (++counter) + " = ", node.stemElement, node);
+        window["el" + counter] = node.stemElement;
+    };
 
     setCurrentNode(node) {
         this.node = node;
@@ -87,15 +134,12 @@ class HoverInspector extends BaseClass{
                 if (name === "UIElement") {
                     name = node.tagName.toLowerCase();
                 }
-                this.tooltip.innerHTML = `${node.offsetWidth} x ${node.offsetHeight} ${name}`;
-                this.positionHighlightPanel();
 
-                const traceEvent = new KeyboardEvent("keypress", {
-                    key: "c",
-                    ctrlKey: true,
-                    shiftKey: true,
-                });
-                document.dispatchEvent(traceEvent);
+                const dimensions = getDimensions(node);
+                this.tooltip.innerHTML = `${dimensions.width} x ${dimensions.height}
+                                          <span class="stem-tooltip-tag-name">${name}</span>`;
+
+                this.positionHighlightPanel();
             }
         }
         this.oldNode = this.node;
@@ -103,10 +147,11 @@ class HoverInspector extends BaseClass{
 
     positionHighlightPanel() {
         const coords = getCoords(this.node);
+        const dimensions = getDimensions(this.node);
         this.highlightPanel.style.left = coords.x + "px";
         this.highlightPanel.style.top = coords.y + "px";
-        this.highlightPanel.style.width = this.node.offsetWidth + "px";
-        this.highlightPanel.style.height = this.node.offsetHeight + "px";
+        this.highlightPanel.style.width = dimensions.width + "px";
+        this.highlightPanel.style.height = dimensions.height + "px";
     }
 
     createTooltip() {
@@ -120,7 +165,9 @@ class HoverInspector extends BaseClass{
     }
 
     destroyTooltip() {
-        document.body.eraseChild(this.tooltip);
+        if (this.tooltip.parentNode === document.body) {
+            document.body.removeChild(this.tooltip);
+        }
         document.body.removeEventListener("mousemove", this.tooltipMousemoveListener);
     }
 }

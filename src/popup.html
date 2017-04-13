@@ -2,9 +2,19 @@
 <html>
     <head>
         <title>StemJS Developer Tools</title>
+        <link rel="stylesheet" href="popup.css"/>
     </head>
     <body>
-        <button id="magic">Let the magic begin!</button>
+        <div id="mainContainer">
+            <span><label>Clear console <input type="checkbox" id="clearConsole"/></label></span>
+            <span><label>Inspect shortcut:</label></span>
+            <span id="shortcut"></span>
+            <button id="recordInspectShortcut">Record shortcut</button>
+            <ul>
+                <li>Press <b>Esc</b> to cancel DOM Inspector</li>
+                <li>Press <b>W</b> to focus the parent of the element you are hovering (works recursively).</li>
+            </ul>
+        </div>
     </body>
     <script src="popup.js"></script>
 </html>
