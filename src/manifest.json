@@ -22,11 +22,17 @@
             "https://*/*",
             "http://*/*"
         ],
-        "js": ["injector.js"]
+        "js": ["injector.js"],
+        "run_at": "document_start"
     }],
     "externally_connectable": {
         "matches": [
-            "http://localhost:*/*"
+            "http://localhost:*/*",
+            "https://localhost:*/*",
+            "http://csacademy.com/*",
+            "https://csacademy.com/*",
+            "http://stemjs.com/*",
+            "https://stemjs.com/*",
         ]
     },
     "web_accessible_resources": [
