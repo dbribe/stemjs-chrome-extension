@@ -3,7 +3,7 @@ const parseKeyEvent = (event) => {
         (event.shiftKey ? "T" : "F") + event.code;
 };
 
-const extensionID = "dljmijiigdaaihfmigaefbmnnakcgief";
+const extensionID = "dafbaningjbbmlffecdcjmlcfhbchfmc";
 const mainPort = chrome.runtime.connect(extensionID, {name: "page"});
 sessionStorage.setItem("stemDevTools", "true");
 
@@ -17,8 +17,6 @@ let counter = 0;
 mainPort.onMessage.addListener((event) => {
     if (event.type === "hoverInspector") {
         HoverInspector.getInstance().start();
-    } else if (event.type === "getStorageValue") {
-        mainPort.postMessage({type: "getStorageValue", id: event.id, value: localStorage.getItem(event.key)});
     } else if (event.type === "setStorageValue") {
         localStorage.setItem(event.key, event.value);
     }
@@ -35,15 +33,11 @@ class BaseClass {
 }
 
 function getCoords(node) {
-    let x = 0;
-    let y = 0;
-    while(node) {
-        x += node.offsetLeft - node.scrollLeft;
-        y += node.offsetTop - node.scrollTop;
-        node = node.offsetParent;
-    }
-    return {x: x, y: y};
-}
+    return {
+        x: node.getBoundingClientRect().left,
+        y: node.getBoundingClientRect().top
+    };
+};
 
 function getDimensions(node) {
     if (node.offsetWidth != null) {
@@ -55,7 +49,7 @@ function getDimensions(node) {
 }
 
 document.addEventListener("keydown", (event) => {
-    if (parseKeyEvent(event) === localStorage.getItem("inspectShortcut")) {
+    if (parseKeyEvent(event) === localStorage.getItem("StemJSshortcut")) {
         HoverInspector.getInstance().start();
     }
 });
@@ -72,7 +66,11 @@ class HoverInspector extends BaseClass{
         });
         this.keyupListener = document.addEventListener("keyup", (event) => {
             if (event.keyCode == 87) { // W
-                const parent = this.node.stemElement ? this.node.stemElement.parent : this.node.parentNode;
+                if (this.node === document.body) {
+                    this.setCurrentNode(document.body);
+                    return;
+                }
+                const parent = this.node.stemElement ? this.node.stemElement.parent.node : this.node.parentNode;
                 if (parent) {
                     this.setCurrentNode(parent);
                 }
@@ -119,7 +117,7 @@ class HoverInspector extends BaseClass{
     }
 
     static inspectElement(node) {
-        if (localStorage.getItem("clearConsole") === "true") {
+        if (localStorage.getItem("StemJSclearConsole") === "true") {
             console.clear();
         }
         console.info("el" + (++counter) + " = ", node.stemElement, node);

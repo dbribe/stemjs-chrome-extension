@@ -8,36 +8,36 @@ const isMac = () => {
 };
 
 const port = chrome.extension.connect({name: "popup"});
-let ID = 0;
-const createUniqueID = () => {
-    ID += 1;
-    return ID;
+
+let config = {
+    shortcut: "",
+    clearConsole: true,
 };
 
-const localStorage = {
-    getItem: (key, callback) => {
-        let value;
-        const getID = createUniqueID();
-        port.postMessage({type: "getStorageValue", id: getID, key: key});
-        port.onMessage.addListener((response) => {
-            if (response.id === getID) {
-                callback(response.value);
-                return;
-            }
-        });
-    },
-    setItem: (key, value) => {
-        port.postMessage({type: "setStorageValue", key: key, value: value});
-    }
+const saveConfig = () => {
+    chrome.storage.sync.set({"StemJS": config});
+    port.postMessage({type: "setStorageValue", key: "StemJSshortcut", value: config.shortcut});
+    port.postMessage({type: "setStorageValue", key: "StemJSclearConsole", value: config.clearConsole});
 };
 
+const getConfig = (callback) => {
+    chrome.storage.sync.get("StemJS", (result) => {
+        if (result.StemJS) {
+            config = result.StemJS;
+        }
+        saveConfig();
+        callback();
+    });
+};
 
 const clearConsoleCheckbox = document.getElementById("clearConsole");
-localStorage.getItem("clearConsole", (value) => {
-    clearConsoleCheckbox.checked = (value === "true");
+
+getConfig(() => {
+    clearConsoleCheckbox.checked = config.clearConsole;
 });
 clearConsoleCheckbox.addEventListener("change", () => {
-    localStorage.setItem("clearConsole", clearConsoleCheckbox.checked.toString());
+    config.clearConsole = clearConsoleCheckbox.checked;
+    saveConfig();
 });
 
 const parseInspectShortcut = (value) => {
@@ -56,16 +56,16 @@ const parseInspectShortcut = (value) => {
 
 const shortcutSpan = document.getElementById("shortcut");
 const recordInspectShortcutButton = document.getElementById("recordInspectShortcut");
-localStorage.getItem("inspectShortcut", (value) => {
-    if (value) {
-        shortcutSpan.innerHTML = parseInspectShortcut(value);
-    }
+
+getConfig(() => {
+    shortcutSpan.innerHTML = parseInspectShortcut(config.shortcut);
 });
 recordInspectShortcutButton.addEventListener("click", () => {
     let keydownHandler = document.addEventListener("keydown", (event) => {
         const shortcut = parseKeyEvent(event);
         shortcutSpan.innerHTML = parseInspectShortcut(shortcut);
-        localStorage.setItem("inspectShortcut", shortcut);
+        config.shortcut = shortcut;
+        saveConfig();
     });
     let keyupHandler = document.addEventListener("keyup", (event) => {
         document.removeEventListener("keydown", keydownHandler);
