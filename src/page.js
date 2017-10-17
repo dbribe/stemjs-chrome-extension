@@ -3,7 +3,7 @@ const parseKeyEvent = (event) => {
         (event.shiftKey ? "T" : "F") + event.code;
 };
 
-const extensionID = "dafbaningjbbmlffecdcjmlcfhbchfmc";
+const extensionID = "hjcngnecejoklbllfnefohkmlibjanhc";
 const mainPort = chrome.runtime.connect(extensionID, {name: "page"});
 sessionStorage.setItem("stemDevTools", "true");
 
